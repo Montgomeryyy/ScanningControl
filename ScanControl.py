@@ -637,100 +637,107 @@ class MainControlWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             
                 #判断电机所处位置，并且已完成的扫描周期还不到设定值，则发送循环指令
                 if StatsData.COMPLETED_LOOPS < ScanningParameters.SCAN_PERIODS and StatsData.SCAN_FLAG == 1:
-                    if StatsData.OUTSIDE_SENSOR_FLAG == 1:      #即将正向进入区间1
-                        StatsData.setRealtimePosition(1)
-                        StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_1)
-                        StatsData.setScanDirection(2)
-                        sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
-                        self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                    if StatsData.BEAM_OUTER_EDGE_CLOSER_SENSOR_FLAG == 1:
-                        if StatsData.THROUGH_BEAM_OUTER_TIMES % 4 == 1:      #即将正向进入区间2
-                            StatsData.setRealtimePosition(2)
-                            StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_2)
-                            sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
-                            self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                        elif StatsData.THROUGH_BEAM_OUTER_TIMES % 4 == 2:    #即将正向进入区间3
-                            StatsData.setRealtimePosition(3)
-                            StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_3)
-                            sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
-                            self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                        elif StatsData.THROUGH_BEAM_OUTER_TIMES % 4 == 3:    #即将反向进入区间2
-                            #反向进入，添加延时
-                            #待解决问题：每个周期反向要仅睡一次，暂定通过对比completed loops实现
-                            if StatsData.DELAY_FLAG_2 == 1:
-                                if self.delayCount2 < ScanningParameters.SCAN_BACKWARD_DELAY_2_SEND_TIMES:
-                                    self.delayCount2 = self.delayCount2 + 1
-                                    self.sendToMotorMessageTextBrowser.insertPlainText("上位机>>>电机：" + 'delay!' + '\n')
-                                    textCursor = self.sendToMotorMessageTextBrowser.textCursor()
-                                    textCursor.movePosition(textCursor.End)
-                                    self.sendToMotorMessageTextBrowser.setTextCursor(textCursor)
-                                else:
-                                    self.delayCount2 = 0
-                                    StatsData.setDelayFlag2(0)
-                            else:
-                                StatsData.setRealtimePosition(2)
-                                StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_2)
-                                sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY))
-                                self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                            print('self.delayCount2:'+str(self.delayCount2)+'StatsData.DELAY_FLAG_2:'+str(StatsData.DELAY_FLAG_2))
-                        else:                                                #即将反向进入区间1
+                    #最多同时只能有一个接近传感器被触发，否则报错
+                    if StatsData.OUTSIDE_SENSOR_FLAG + StatsData.BEAM_OUTER_EDGE_CLOSER_SENSOR_FLAG + StatsData.BEAM_INNER_EDGE_CLOSER_SENSOR_FLAG + StatsData.INSIDE_SENSOR_FLAG >= 2:
+                        QMessageBox.critical(self, 'hardware error', '多于1个接近开关被触发！!')
+                    else:
+                        if StatsData.OUTSIDE_SENSOR_FLAG == 1:      #即将正向进入区间1
                             StatsData.setRealtimePosition(1)
-                            StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_1)
-                            sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY))
-                            self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                    if StatsData.BEAM_INNER_EDGE_CLOSER_SENSOR_FLAG == 1:
-                        if  StatsData.THROUGH_BEAM_INNER_TIMES % 4 == 1:      #即将正向进入区间4
-                            StatsData.setRealtimePosition(4)
-                            StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_4)
+                            StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_1)
+                            StatsData.setScanDirection(2)
                             sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
                             self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                        elif StatsData.THROUGH_BEAM_INNER_TIMES % 4 == 2:      #即将正向进入区间5
-                            StatsData.setRealtimePosition(5)
-                            StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_5)
-                            sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
-                            self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                        elif StatsData.THROUGH_BEAM_INNER_TIMES % 4 == 3:      #即将反向向进入区间4
-                            #反向进入，添加延时
-                            if StatsData.DELAY_FLAG_4 == 1:
-                                if self.delayCount4 < ScanningParameters.SCAN_BACKWARD_DELAY_4_SEND_TIMES:
-                                    self.delayCount4 = self.delayCount4 + 1
-                                    self.sendToMotorMessageTextBrowser.insertPlainText("上位机>>>电机：" + 'delay!' + '\n')
-                                    textCursor = self.sendToMotorMessageTextBrowser.textCursor()
-                                    textCursor.movePosition(textCursor.End)
-                                    self.sendToMotorMessageTextBrowser.setTextCursor(textCursor)
+                        elif StatsData.BEAM_OUTER_EDGE_CLOSER_SENSOR_FLAG == 1:
+                            if StatsData.THROUGH_BEAM_OUTER_TIMES % 4 == 1:      #即将正向进入区间2
+                                StatsData.setRealtimePosition(2)
+                                StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_2)
+                                sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
+                                self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+                            elif StatsData.THROUGH_BEAM_OUTER_TIMES % 4 == 2:    #即将正向进入区间3
+                                StatsData.setRealtimePosition(3)
+                                StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_3)
+                                sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
+                                self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+                            elif StatsData.THROUGH_BEAM_OUTER_TIMES % 4 == 3:    #即将反向进入区间2
+                                #反向进入，添加延时
+                                #待解决问题：每个周期反向要仅睡一次，暂定通过对比completed loops实现
+                                if StatsData.DELAY_FLAG_2 == 1:
+                                    if self.delayCount2 < ScanningParameters.SCAN_BACKWARD_DELAY_2_SEND_TIMES:
+                                        self.delayCount2 = self.delayCount2 + 1
+                                        self.sendToMotorMessageTextBrowser.insertPlainText("上位机>>>电机：" + 'delay!' + '\n')
+                                        textCursor = self.sendToMotorMessageTextBrowser.textCursor()
+                                        textCursor.movePosition(textCursor.End)
+                                        self.sendToMotorMessageTextBrowser.setTextCursor(textCursor)
+                                    else:
+                                        self.delayCount2 = 0
+                                        StatsData.setDelayFlag2(0)
                                 else:
-                                    self.delayCount4 = 0
-                                    StatsData.setDelayFlag4(0)
-                            else:
-                                StatsData.setRealtimePosition(4)
-                                StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_4)
+                                    StatsData.setRealtimePosition(2)
+                                    StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_2)
+                                    sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY))
+                                    self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+                                print('self.delayCount2:'+str(self.delayCount2)+'StatsData.DELAY_FLAG_2:'+str(StatsData.DELAY_FLAG_2))
+                            else:                                                #即将反向进入区间1
+                                StatsData.setRealtimePosition(1)
+                                StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_1)
                                 sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY))
                                 self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
-                            print('self.delayCount4:'+str(self.delayCount4)+'StatsData.DELAY_FLAG_4:'+str(StatsData.DELAY_FLAG_4))
-                        else :                                                 #即将反向进入区间3
-                            #反向进入，添加延时
-                            if StatsData.DELAY_FLAG_3 == 1:
-                                if self.delayCount3 < ScanningParameters.SCAN_BACKWARD_DELAY_3_SEND_TIMES:
-                                    self.delayCount3 = self.delayCount3 + 1
-                                    self.sendToMotorMessageTextBrowser.insertPlainText("上位机>>>电机：" + 'delay!' + '\n')
-                                    textCursor = self.sendToMotorMessageTextBrowser.textCursor()
-                                    textCursor.movePosition(textCursor.End)
-                                    self.sendToMotorMessageTextBrowser.setTextCursor(textCursor)
+                        elif StatsData.BEAM_INNER_EDGE_CLOSER_SENSOR_FLAG == 1:
+                            if  StatsData.THROUGH_BEAM_INNER_TIMES % 4 == 1:      #即将正向进入区间4
+                                StatsData.setRealtimePosition(4)
+                                StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_4)
+                                sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
+                                self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+                            elif StatsData.THROUGH_BEAM_INNER_TIMES % 4 == 2:      #即将正向进入区间5
+                                StatsData.setRealtimePosition(5)
+                                StatsData.setRealtimeVelocity(ScanningParameters.SCAN_VELOCITY_5)
+                                sendToMotorSyntax = self.calControlSyntax(0, StatsData.REALTIME_VELOCITY)
+                                self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+                            elif StatsData.THROUGH_BEAM_INNER_TIMES % 4 == 3:      #即将反向向进入区间4
+                                #反向进入，添加延时
+                                if StatsData.DELAY_FLAG_4 == 1:
+                                    if self.delayCount4 < ScanningParameters.SCAN_BACKWARD_DELAY_4_SEND_TIMES:
+                                        self.delayCount4 = self.delayCount4 + 1
+                                        self.sendToMotorMessageTextBrowser.insertPlainText("上位机>>>电机：" + 'delay!' + '\n')
+                                        textCursor = self.sendToMotorMessageTextBrowser.textCursor()
+                                        textCursor.movePosition(textCursor.End)
+                                        self.sendToMotorMessageTextBrowser.setTextCursor(textCursor)
+                                    else:
+                                        self.delayCount4 = 0
+                                        StatsData.setDelayFlag4(0)
                                 else:
-                                    self.delayCount3 = 0
-                                    StatsData.setDelayFlag3(0)
-                            else:
-                                StatsData.setRealtimePosition(3)
-                                StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_3)
-                                sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY)) 
-                                self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)  
-                            print('self.delayCount3:'+str(self.delayCount3)+'StatsData.DELAY_FLAG_3:'+str(StatsData.DELAY_FLAG_3))
-                    if StatsData.INSIDE_SENSOR_FLAG == 1:                    #即将反向进入区间5
-                        StatsData.setScanDirection(1)
-                        StatsData.setRealtimePosition(5)
-                        StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_5)
-                        sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY)) 
-                        self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+                                    StatsData.setRealtimePosition(4)
+                                    StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_4)
+                                    sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY))
+                                    self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+                                print('self.delayCount4:'+str(self.delayCount4)+'StatsData.DELAY_FLAG_4:'+str(StatsData.DELAY_FLAG_4))
+                            else :                                                 #即将反向进入区间3
+                                #反向进入，添加延时
+                                if StatsData.DELAY_FLAG_3 == 1:
+                                    if self.delayCount3 < ScanningParameters.SCAN_BACKWARD_DELAY_3_SEND_TIMES:
+                                        self.delayCount3 = self.delayCount3 + 1
+                                        self.sendToMotorMessageTextBrowser.insertPlainText("上位机>>>电机：" + 'delay!' + '\n')
+                                        textCursor = self.sendToMotorMessageTextBrowser.textCursor()
+                                        textCursor.movePosition(textCursor.End)
+                                        self.sendToMotorMessageTextBrowser.setTextCursor(textCursor)
+                                    else:
+                                        self.delayCount3 = 0
+                                        StatsData.setDelayFlag3(0)
+                                else:
+                                    StatsData.setRealtimePosition(3)
+                                    StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_3)
+                                    sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY)) 
+                                    self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)  
+                                print('self.delayCount3:'+str(self.delayCount3)+'StatsData.DELAY_FLAG_3:'+str(StatsData.DELAY_FLAG_3))
+                        elif StatsData.INSIDE_SENSOR_FLAG == 1:                    #即将反向进入区间5
+                            StatsData.setScanDirection(1)
+                            StatsData.setRealtimePosition(5)
+                            StatsData.setRealtimeVelocity(-ScanningParameters.SCAN_VELOCITY_5)
+                            sendToMotorSyntax = self.calControlSyntax(0, abs(StatsData.REALTIME_VELOCITY)) 
+                            self.sendControlStatements(sendToMotorSyntax, self.serMotor.port)
+
+                        else:
+                            pass
                 elif StatsData.COMPLETED_LOOPS == ScanningParameters.SCAN_PERIODS and StatsData.SCAN_FLAG == 1:
                     StatsData.setScanDirection(3)
                     StatsData.setScanFlag(0)
